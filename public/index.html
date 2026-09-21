@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Parking</title>
+<style>
+  :root {
+    --bg: #0b1020; --card: #141b2f; --line: #243049;
+    --text: #e6ebf5; --muted: #8a96b0;
+    --free: #22c55e; --occ: #ef4444; --res: #eab308; --gray: #6b7280;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+  header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  h1 { font-size: 24px; letter-spacing: 1px; }
+  h2 { font-size: 18px; }
+  .right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .live { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--occ); }
+  .dot.on { background: var(--free); animation: pulse 1.5s infinite; }
+  .dot.demo { background: var(--res); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  button { background: #1f2a44; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: 14px; }
+  button:hover:not(:disabled) { background: #2a3960; }
+  button:disabled { opacity: .4; cursor: default; }
+  .banner { display: none; background: var(--res); color: #111; text-align: center; padding: 8px; border-radius: 8px; margin-bottom: 16px; font-weight: 600; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .stat .lbl { color: var(--muted); font-size: 13px; }
+  .stat .num { font-size: 32px; font-weight: 700; margin-top: 4px; }
+  .floor { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .floor-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #1f2a44; color: var(--muted); }
+  .badge.on { color: var(--free); }
+  .badge.off { color: var(--occ); }
+  .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .slot { border: 2px solid var(--gray); border-radius: 10px; padding: 12px; transition: all .3s; }
+  .slot.FREE { border-color: var(--free); background: rgba(34,197,94,.08); }
+  .slot.OCCUPIED { border-color: var(--occ); background: rgba(239,68,68,.08); }
+  .slot.RESERVED { border-color: var(--res); background: rgba(234,179,8,.08); }
+  .slot.NO_DATA { border-style: dashed; }
+  .slot .name { font-weight: 700; }
+  .slot .st { font-size: 13px; margin: 4px 0; }
+  .FREE .st { color: var(--free); }
+  .OCCUPIED .st { color: var(--occ); }
+  .RESERVED .st { color: var(--res); }
+  .NO_DATA .st { color: var(--gray); }
+  .slot .val { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .slot button { width: 100%; padding: 6px; font-size: 13px; }
+  .events { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .events ul { list-style: none; margin-top: 10px; max-height: 300px; overflow-y: auto; }
+  .events li { padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+  .events time { color: var(--text); margin-right: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🅿️ SMART PARKING</h1>
+  <div class="right">
+    <div class="live"><span class="dot" id="dot"></span><span id="liveText">Ulanmoqda...</span></div>
+    <button id="demoBtn">Demo rejim: O'CHIQ</button>
+  </div>
+</header>
+
+<div class="banner" id="banner">DEMO REJIM — ko'rsatilayotgan ma'lumotlar haqiqiy emas</div>
+
+<div class="stats">
+  <div class="stat"><div class="lbl">Umumiy joylar</div><div class="num" id="total">16</div></div>
+  <div class="stat"><div class="lbl">Bo'sh</div><div class="num" id="free" style="color:var(--free)">–</div></div>
+  <div class="stat"><div class="lbl">Band</div><div class="num" id="occupied" style="color:var(--occ)">–</div></div>
+  <div class="stat"><div class="lbl">Band qilingan</div><div class="num" id="reserved" style="color:var(--res)">–</div></div>
+</div>
+
+<div id="floors"></div>
+
+<div class="events">
+  <h2>Hodisalar tarixi</h2>
+  <ul id="events"></ul>
+</div>
+
+<script>
+const LABELS = { FREE: "Bo'sh", OCCUPIED: "Band", RESERVED: "Band qilingan", NO_DATA: "Ma'lumot yo'q" };
+let demo = false;
+let demoData = null;
+
+// ===== Serverdan real ma'lumot olish =====
+async function load() {
+  if (demo) { tickDemo(); render(demoData); setLive(true); return; }
+  try {
+    const [status, events] = await Promise.all([
+      fetch("/api/status").then(r => r.json()),
+      fetch("/api/events").then(r => r.json()),
+    ]);
+    if (demo) return;
+    setLive(true);
+    render(status);
+    renderEvents(events);
+  } catch (e) {
+    setLive(false);
+  }
+}
+
+function setLive(ok) {
+  const dot = document.getElementById("dot");
+  const txt = document.getElementById("liveText");
+  if (demo) { dot.className = "dot demo"; txt.textContent = "DEMO"; return; }
+  dot.className = ok ? "dot on" : "dot";
+  txt.textContent = ok ? "Server: ulangan" : "Server bilan aloqa yo'q";
+}
+
+// ===== Ekranga chizish =====
+function render(data) {
+  document.getElementById("total").textContent = data.total;
+  document.getElementById("free").textContent = data.free;
+  document.getElementById("occupied").textContent = data.occupied;
+  document.getElementById("reserved").textContent = data.reserved;
+
+  document.getElementById("floors").innerHTML = Object.entries(data.floors).map(([floor, f]) => {
+    const freeCount = f.slots.filter(s => s.status === "FREE").length;
+    return `
+      <div class="floor">
+        <div class="floor-head">
+          <h2>${floor}-qavat</h2>
+          <div class="badges">
+            <span class="badge">Bo'sh: ${freeCount} / ${f.slots.length}</span>
+            <span class="badge ${f.online ? "on" : "off"}">ESP32: ${f.online ? "online" : "offline"}</span>
+          </div>
+        </div>
+        <div class="slots">${f.slots.map(s => slotHtml(floor, s)).join("")}</div>
+      </div>`;
+  }).join("");
+}
+
+function slotHtml(floor, s) {
+  let btn;
+  if (s.status === "RESERVED") {
+    btn = `<button data-floor="${floor}" data-slot="${s.slot}" data-reserve="0">Bekor qilish</button>`;
+  } else if (s.status === "FREE") {
+    btn = `<button data-floor="${floor}" data-slot="${s.slot}" data-reserve="1">Band qilish</button>`;
+  } else {
+    btn = `<button disabled>Band qilish</button>`;
+  }
+  return `
+    <div class="slot ${s.status}">
+      <div class="name">${floor}-${s.slot} joy</div>
+      <div class="st">${LABELS[s.status]}</div>
+      <div class="val">Sensor: ${s.value ?? "—"}</div>
+      ${btn}
+    </div>`;
+}
+
+function renderEvents(list) {
+  const ul = document.getElementById("events");
+  if (!list.length) { ul.innerHTML = "<li>Hozircha hodisalar yo'q</li>"; return; }
+  ul.innerHTML = list.map(e =>
+    `<li><time>${new Date(e.time).toLocaleTimeString("uz-UZ")}</time>${e.text}</li>`
+  ).join("");
+}
+
+// ===== Band qilish tugmasi =====
+document.getElementById("floors").addEventListener("click", async (e) => {
+  const b = e.target.closest("button[data-floor]");
+  if (!b) return;
+  const body = {
+    floor: Number(b.dataset.floor),
+    slot: Number(b.dataset.slot),
+    reserve: b.dataset.reserve === "1",
+  };
+
+  if (demo) {
+    demoData.floors[body.floor].slots[body.slot - 1].status = body.reserve ? "RESERVED" : "FREE";
+    recount(demoData);
+    render(demoData);
+    return;
+  }
+
+  b.disabled = true;
+  try {
+    const r = await fetch("/api/reserve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      alert(j.error || "Xatolik yuz berdi");
+    }
+  } catch (err) {
+    alert("Server bilan aloqa yo'q");
+  }
+  load();
+});
+
+// ===== DEMO REJIM (faqat brauzerda, serverga hech narsa yozmaydi) =====
+function makeDemo() {
+  const d = { floors: {} };
+  for (const [floor, count] of [["1", 5], ["2", 5], ["3", 6]]) {
+    d.floors[floor] = {
+      online: true,
+      slots: Array.from({ length: count }, (_, i) => {
+        const occ = Math.random() < 0.5;
+        return { slot: i + 1, value: occ ? 0 : 900, status: occ ? "OCCUPIED" : "FREE" };
+      }),
+    };
+  }
+  recount(d);
+  return d;
+}
+
+function tickDemo() {
+  if (Math.random() < 0.5) return;
+  const list = Object.values(demoData.floors);
+  const f = list[Math.floor(Math.random() * list.length)];
+  const s = f.slots[Math.floor(Math.random() * f.slots.length)];
+  if (s.status === "RESERVED") return;
+  s.status = s.status === "FREE" ? "OCCUPIED" : "FREE";
+  s.value = s.status === "OCCUPIED" ? 0 : 900;
+  recount(demoData);
+}
+
+function recount(d) {
+  const all = Object.values(d.floors).flatMap(f => f.slots);
+  d.total = all.length;
+  d.free = all.filter(s => s.status === "FREE").length;
+  d.occupied = all.filter(s => s.status === "OCCUPIED").length;
+  d.reserved = all.filter(s => s.status === "RESERVED").length;
+}
+
+document.getElementById("demoBtn").addEventListener("click", () => {
+  demo = !demo;
+  document.getElementById("demoBtn").textContent = `Demo rejim: ${demo ? "YOQIQ" : "O'CHIQ"}`;
+  document.getElementById("banner").style.display = demo ? "block" : "none";
+  if (demo) {
+    demoData = makeDemo();
+    document.getElementById("events").innerHTML = "<li>Demo rejimda hodisalar tarixi yozilmaydi</li>";
+  }
+  load();
+});
+
+// ===== Har 2 soniyada yangilash =====
+load();
+setInterval(load, 2000);
+</script>
+</body>
+</html>
