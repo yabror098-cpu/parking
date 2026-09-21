@@ -23,7 +23,7 @@
   @keyframes pulse { 50% { opacity: .3; } }
   button { background: #1f2a44; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: 14px; }
   button:hover:not(:disabled) { background: #2a3960; }
-  button:disabled { opacity: .4; cursor: default; }
+  button:disabled { opacity: .35; cursor: default; }
   .banner { display: none; background: var(--res); color: #111; text-align: center; padding: 8px; border-radius: 8px; margin-bottom: 16px; font-weight: 600; }
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
   .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
@@ -35,7 +35,7 @@
   .badge { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #1f2a44; color: var(--muted); }
   .badge.on { color: var(--free); }
   .badge.off { color: var(--occ); }
-  .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
   .slot { border: 2px solid var(--gray); border-radius: 10px; padding: 12px; transition: all .3s; }
   .slot.FREE { border-color: var(--free); background: rgba(34,197,94,.08); }
   .slot.OCCUPIED { border-color: var(--occ); background: rgba(239,68,68,.08); }
@@ -47,12 +47,21 @@
   .OCCUPIED .st { color: var(--occ); }
   .RESERVED .st { color: var(--res); }
   .NO_DATA .st { color: var(--gray); }
+  .timer { font-size: 22px; font-weight: 700; color: var(--res); margin: 4px 0; font-variant-numeric: tabular-nums; }
+  .timer.low { color: var(--occ); animation: pulse 1s infinite; }
   .slot .val { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
-  .slot button { width: 100%; padding: 6px; font-size: 13px; }
+  .btns { display: grid; gap: 6px; }
+  .btns button { width: 100%; padding: 6px; font-size: 13px; }
   .events { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
   .events ul { list-style: none; margin-top: 10px; max-height: 300px; overflow-y: auto; }
   .events li { padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--muted); }
   .events time { color: var(--text); margin-right: 8px; }
+  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); align-items: center; justify-content: center; padding: 20px; z-index: 10; }
+  .box { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; width: 100%; max-width: 360px; }
+  .box h3 { font-size: 17px; margin-bottom: 14px; }
+  .opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .opts button { padding: 12px; font-weight: 600; }
+  .close { width: 100%; background: transparent; }
 </style>
 </head>
 <body>
@@ -79,6 +88,15 @@
 <div class="events">
   <h2>Hodisalar tarixi</h2>
   <ul id="events"></ul>
+</div>
+
+<!-- Vaqt tanlash oynasi -->
+<div class="modal" id="modal">
+  <div class="box">
+    <h3 id="mTitle"></h3>
+    <div class="opts" id="mOpts"></div>
+    <button class="close" id="mClose">Yopish</button>
+  </div>
 </div>
 
 <script>
@@ -111,6 +129,12 @@ function setLive(ok) {
   txt.textContent = ok ? "Server: ulangan" : "Server bilan aloqa yo'q";
 }
 
+function fmt(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
 // ===== Ekranga chizish =====
 function render(data) {
   document.getElementById("total").textContent = data.total;
@@ -135,20 +159,23 @@ function render(data) {
 }
 
 function slotHtml(floor, s) {
-  let btn;
-  if (s.status === "RESERVED") {
-    btn = `<button data-floor="${floor}" data-slot="${s.slot}" data-reserve="0">Bekor qilish</button>`;
-  } else if (s.status === "FREE") {
-    btn = `<button data-floor="${floor}" data-slot="${s.slot}" data-reserve="1">Band qilish</button>`;
-  } else {
-    btn = `<button disabled>Band qilish</button>`;
-  }
+  const d = `data-floor="${floor}" data-slot="${s.slot}"`;
+  const isFree = s.status === "FREE";
+  const isRes = s.status === "RESERVED";
+  const timer = isRes
+    ? `<div class="timer ${s.remaining <= 60 ? "low" : ""}">⏱ ${fmt(s.remaining)}</div>`
+    : "";
   return `
     <div class="slot ${s.status}">
       <div class="name">${floor}-${s.slot} joy</div>
       <div class="st">${LABELS[s.status]}</div>
+      ${timer}
       <div class="val">Sensor: ${s.value ?? "—"}</div>
-      ${btn}
+      <div class="btns">
+        <button ${d} data-action="reserve" ${isFree ? "" : "disabled"}>Band qilish</button>
+        <button ${d} data-action="extend" ${isRes && s.canExtend ? "" : "disabled"}>${s.extended ? "Vaqt qo'shildi" : "Vaqt qo'shish"}</button>
+        <button ${d} data-action="arrive" ${isRes ? "" : "disabled"}>Keldim</button>
+      </div>
     </div>`;
 }
 
@@ -160,29 +187,59 @@ function renderEvents(list) {
   ).join("");
 }
 
-// ===== Band qilish tugmasi =====
-document.getElementById("floors").addEventListener("click", async (e) => {
-  const b = e.target.closest("button[data-floor]");
-  if (!b) return;
-  const body = {
-    floor: Number(b.dataset.floor),
-    slot: Number(b.dataset.slot),
-    reserve: b.dataset.reserve === "1",
-  };
+// ===== Vaqt tanlash oynasi =====
+let onPick = null;
+function openModal(title, options, callback) {
+  document.getElementById("mTitle").textContent = title;
+  document.getElementById("mOpts").innerHTML = options
+    .map(m => `<button data-min="${m}">${m} daqiqa</button>`).join("");
+  onPick = callback;
+  document.getElementById("modal").style.display = "flex";
+}
+function closeModal() {
+  document.getElementById("modal").style.display = "none";
+  onPick = null;
+}
+document.getElementById("mOpts").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-min]");
+  if (!b || !onPick) return;
+  const cb = onPick;
+  closeModal();
+  cb(Number(b.dataset.min));
+});
+document.getElementById("mClose").addEventListener("click", closeModal);
 
+// ===== Tugmalar: Band qilish / Vaqt qo'shish / Keldim =====
+document.getElementById("floors").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-action]");
+  if (!b || b.disabled) return;
+  const floor = Number(b.dataset.floor);
+  const slot = Number(b.dataset.slot);
+  const action = b.dataset.action;
+
+  if (action === "reserve") {
+    openModal(`${floor}-${slot} joyni necha daqiqaga band qilasiz?`, [10, 15, 20],
+      m => doAction("reserve", floor, slot, m));
+  } else if (action === "extend") {
+    openModal("Qancha vaqt qo'shasiz?", [1, 2, 3, 4, 5],
+      m => doAction("extend", floor, slot, m));
+  } else if (action === "arrive") {
+    doAction("arrive", floor, slot);
+  }
+});
+
+async function doAction(action, floor, slot, minutes) {
   if (demo) {
-    demoData.floors[body.floor].slots[body.slot - 1].status = body.reserve ? "RESERVED" : "FREE";
-    recount(demoData);
+    const err = demoAction(action, floor, slot, minutes);
+    if (err) alert(err);
     render(demoData);
     return;
   }
-
-  b.disabled = true;
   try {
-    const r = await fetch("/api/reserve", {
+    const r = await fetch(`/api/${action}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ floor, slot, minutes }),
     });
     if (!r.ok) {
       const j = await r.json().catch(() => ({}));
@@ -192,7 +249,7 @@ document.getElementById("floors").addEventListener("click", async (e) => {
     alert("Server bilan aloqa yo'q");
   }
   load();
-});
+}
 
 // ===== DEMO REJIM (faqat brauzerda, serverga hech narsa yozmaydi) =====
 function makeDemo() {
@@ -202,31 +259,63 @@ function makeDemo() {
       online: true,
       slots: Array.from({ length: count }, (_, i) => {
         const occ = Math.random() < 0.5;
-        return { slot: i + 1, value: occ ? 0 : 900, status: occ ? "OCCUPIED" : "FREE" };
+        return { slot: i + 1, value: occ ? 0 : 900, status: occ ? "OCCUPIED" : "FREE",
+                 until: 0, extended: false, remaining: 0, canExtend: false };
       }),
     };
   }
-  recount(d);
+  updateDemo(d);
   return d;
 }
 
-function tickDemo() {
-  if (Math.random() < 0.5) return;
-  const list = Object.values(demoData.floors);
-  const f = list[Math.floor(Math.random() * list.length)];
-  const s = f.slots[Math.floor(Math.random() * f.slots.length)];
-  if (s.status === "RESERVED") return;
-  s.status = s.status === "FREE" ? "OCCUPIED" : "FREE";
-  s.value = s.status === "OCCUPIED" ? 0 : 900;
-  recount(demoData);
+function demoAction(action, floor, slot, minutes) {
+  const s = demoData.floors[floor].slots[slot - 1];
+  if (action === "reserve") {
+    if (s.status !== "FREE") return "Bu joyni band qilib bo'lmaydi";
+    s.status = "RESERVED";
+    s.until = Date.now() + minutes * 60000;
+    s.extended = false;
+  } else if (action === "extend") {
+    s.until += minutes * 60000;
+    s.extended = true;
+  } else if (action === "arrive") {
+    s.status = "FREE";
+    s.until = 0;
+    s.extended = false;
+  }
+  updateDemo(demoData);
+  return null;
 }
 
-function recount(d) {
+function updateDemo(d) {
+  const now = Date.now();
+  for (const f of Object.values(d.floors)) {
+    for (const s of f.slots) {
+      if (s.status === "RESERVED" && now >= s.until) {
+        s.status = "FREE"; s.until = 0; s.extended = false;
+      }
+      s.remaining = s.status === "RESERVED" ? Math.ceil((s.until - now) / 1000) : 0;
+      s.canExtend = s.status === "RESERVED" && !s.extended && s.remaining <= 60;
+    }
+  }
   const all = Object.values(d.floors).flatMap(f => f.slots);
   d.total = all.length;
   d.free = all.filter(s => s.status === "FREE").length;
   d.occupied = all.filter(s => s.status === "OCCUPIED").length;
   d.reserved = all.filter(s => s.status === "RESERVED").length;
+}
+
+function tickDemo() {
+  if (Math.random() < 0.15) {
+    const list = Object.values(demoData.floors);
+    const f = list[Math.floor(Math.random() * list.length)];
+    const s = f.slots[Math.floor(Math.random() * f.slots.length)];
+    if (s.status === "FREE" || s.status === "OCCUPIED") {
+      s.status = s.status === "FREE" ? "OCCUPIED" : "FREE";
+      s.value = s.status === "OCCUPIED" ? 0 : 900;
+    }
+  }
+  updateDemo(demoData);
 }
 
 document.getElementById("demoBtn").addEventListener("click", () => {
@@ -240,9 +329,9 @@ document.getElementById("demoBtn").addEventListener("click", () => {
   load();
 });
 
-// ===== Har 2 soniyada yangilash =====
+// ===== Har soniyada yangilash (taymer silliq yurishi uchun) =====
 load();
-setInterval(load, 2000);
+setInterval(load, 1000);
 </script>
 </body>
 </html>
