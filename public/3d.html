@@ -6,7 +6,6 @@
 <meta name="theme-color" content="#d9dee3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Smart Parking">
 <title>Smart Parking 3D</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,11 +14,11 @@
 <style>
   :root {
     --scene: #d9dee3;
-    --panel: rgba(255,255,255,.88);
+    --panel: rgba(255,255,255,.9);
     --solid: #ffffff;
     --ink: #1c2530;
     --muted: #5d6874;
-    --line: rgba(28,37,48,.12);
+    --line: rgba(28,37,48,.13);
     --free: #1f9d55;
     --occ: #e03e3e;
     --res: #e8a317;
@@ -28,13 +27,13 @@
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --scene: #1b222c; --panel: rgba(30,38,50,.9); --solid: #242e3c;
-      --ink: #e9eef4; --muted: #9ba7b5; --line: rgba(233,238,244,.14); --focus: #6aa7ea;
+      --scene: #1b222c; --panel: rgba(30,38,50,.92); --solid: #242e3c;
+      --ink: #e9eef4; --muted: #9ba7b5; --line: rgba(233,238,244,.15); --focus: #6aa7ea;
     }
   }
   :root[data-theme="dark"] {
-    --scene: #1b222c; --panel: rgba(30,38,50,.9); --solid: #242e3c;
-    --ink: #e9eef4; --muted: #9ba7b5; --line: rgba(233,238,244,.14); --focus: #6aa7ea;
+    --scene: #1b222c; --panel: rgba(30,38,50,.92); --solid: #242e3c;
+    --ink: #e9eef4; --muted: #9ba7b5; --line: rgba(233,238,244,.15); --focus: #6aa7ea;
   }
   :root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
   *, *::before, *::after { box-sizing: inherit; margin: 0; padding: 0; }
@@ -45,10 +44,9 @@
     -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
   }
   #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-
   .glass { background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 
-  /* Yuqori panel */
+  /* ---------- Yuqori panel ---------- */
   .top {
     position: fixed; top: 0; left: 0; right: 0; z-index: 5;
     padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 0;
@@ -58,40 +56,61 @@
   .bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-radius: 14px; padding: 8px 10px 8px 12px; }
   .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .brand h1 { font-size: 16px; font-weight: 700; line-height: 1.2; }
-  .brand p { font-size: 12px; color: var(--muted); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brand p { font-size: 12px; color: var(--muted); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46vw; }
   .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--off); flex: none; }
   .dot.live { background: var(--free); animation: pulse 1.6s infinite; }
+  .dot.sim { background: var(--focus); }
   .dot.demo { background: var(--res); }
   .dot.lost { background: var(--occ); }
   @keyframes pulse { 50% { opacity: .35; } }
-  .link {
-    font-size: 13px; font-weight: 500; color: var(--ink); text-decoration: none;
-    padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); flex: none;
-  }
+  .link { font-size: 13px; font-weight: 500; color: var(--ink); text-decoration: none; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); flex: none; background: transparent; font-family: inherit; cursor: pointer; }
+  .barBtns { display: flex; gap: 6px; flex: none; }
+  #nightBtn[aria-pressed="true"] { background: var(--ink); color: var(--scene); border-color: var(--ink); }
 
-  .floors { display: grid; grid-template-columns: repeat(4, 1fr); border-radius: 12px; padding: 3px; }
-  .floors button {
+  .seg { display: grid; border-radius: 12px; padding: 3px; }
+  .seg.modes { grid-template-columns: repeat(3, 1fr); }
+  .seg.floors { grid-template-columns: repeat(4, 1fr); }
+  .seg button {
     border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 13px; font-weight: 500;
     min-height: 36px; border-radius: 9px; cursor: pointer; position: relative;
   }
-  .floors button[aria-pressed="true"] { background: var(--ink); color: var(--scene); }
-  .floors button.offline::after {
-    content: ""; position: absolute; top: 6px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--occ);
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--scene); }
+  .seg button.offline::after { content: ""; position: absolute; top: 6px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--occ); }
+
+  .hint {
+    position: fixed; left: 12px; right: 12px; z-index: 4; text-align: center;
+    top: calc(150px + env(safe-area-inset-top, 0px));
+    font-size: 12px; color: var(--muted); pointer-events: none;
   }
 
-  /* Pastki statistika */
-  .stats {
-    position: fixed; left: 12px; right: 12px; z-index: 5;
+  /* ---------- Pastki ekran (konsol) ---------- */
+  .console {
+    position: fixed; left: 12px; right: 12px; z-index: 6;
     bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-    display: flex; justify-content: space-around; gap: 6px; border-radius: 14px; padding: 10px 8px;
-    font-size: 13px; transition: opacity .2s;
+    border-radius: 16px; overflow: hidden; transition: opacity .2s;
+    max-width: 720px; margin: 0 auto;
   }
-  .stats span { display: inline-flex; align-items: center; gap: 6px; }
-  .stats i { width: 10px; height: 10px; border-radius: 3px; }
-  .stats b { font-size: 16px; }
-  body.sheet-open .stats { opacity: 0; pointer-events: none; }
+  body.sheet-open .console { opacity: 0; pointer-events: none; }
+  .cHead {
+    width: 100%; border: 0; background: transparent; color: var(--ink); font: inherit; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; min-height: 48px;
+  }
+  .counts { display: flex; gap: 14px; font-size: 13px; align-items: center; }
+  .counts span { display: inline-flex; align-items: center; gap: 6px; }
+  .counts i { width: 10px; height: 10px; border-radius: 3px; }
+  .counts b { font-size: 16px; }
+  .chev { font-size: 12px; color: var(--muted); }
+  .cBody { display: none; border-top: 1px solid var(--line); padding: 10px 14px 12px; }
+  .console.open .cBody { display: block; }
+  .scen { display: none; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; margin-bottom: 10px; }
+  body.mode-sim .scen { display: grid; }
+  .scen button { font: inherit; font-size: 12px; font-weight: 500; min-height: 38px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+  .log { list-style: none; max-height: 28vh; overflow-y: auto; font-size: 13px; }
+  .log li { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line); color: var(--muted); line-height: 1.35; }
+  .log li:last-child { border-bottom: 0; }
+  .log time { color: var(--ink); font-variant-numeric: tabular-nums; flex: none; }
 
-  /* Joy oynasi (pastdan chiqadi) */
+  /* ---------- Joy oynasi ---------- */
   .sheet {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
     transform: translateY(105%); transition: transform .26s ease;
@@ -121,28 +140,30 @@
   .chips p { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
   .chips div { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
   .chips button { font-weight: 700; }
+  .carBtn { display: none; width: 100%; margin-top: 10px; font: inherit; font-size: 14px; font-weight: 500; min-height: 44px; border-radius: 12px; border: 1px dashed var(--line); background: transparent; color: var(--muted); cursor: pointer; }
+  body.mode-sim .carBtn, body.mode-demo .carBtn { display: block; }
   .note { font-size: 12px; color: var(--muted); margin-top: 10px; min-height: 16px; }
   button:focus-visible, .link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
   .toast {
-    position: fixed; left: 50%; top: calc(120px + env(safe-area-inset-top, 0px)); z-index: 20;
+    position: fixed; left: 50%; top: calc(150px + env(safe-area-inset-top, 0px)); z-index: 20;
     transform: translateX(-50%); background: var(--ink); color: var(--scene);
-    font-size: 14px; padding: 10px 14px; border-radius: 12px; max-width: calc(100% - 32px);
+    font-size: 14px; padding: 10px 14px; border-radius: 12px; max-width: calc(100% - 32px); text-align: center;
     opacity: 0; pointer-events: none; transition: opacity .2s;
   }
   .toast.show { opacity: 1; }
 
   @media (min-width: 720px) {
-    .top { grid-template-columns: 1fr auto; align-items: center; padding-left: 16px; padding-right: 16px; }
-    .floors { grid-template-columns: repeat(4, auto); }
-    .floors button { padding: 0 14px; }
-    .stats { left: 16px; right: auto; gap: 18px; padding: 10px 16px; }
+    .top { grid-template-columns: 1fr auto auto; align-items: center; padding-left: 16px; padding-right: 16px; }
+    .seg.modes, .seg.floors { grid-auto-flow: column; grid-template-columns: none; }
+    .seg button { padding: 0 14px; }
     .sheet { bottom: 16px; border-radius: 20px; border: 1px solid var(--line); }
+    .hint { top: auto; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
   }
-  @media (prefers-reduced-motion: reduce) { .sheet, .stats, .toast { transition: none; } .dot.live, .timer.low { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .sheet, .console, .toast { transition: none; } .dot.live, .timer.low { animation: none; } }
 </style>
 </head>
-<body>
+<body class="mode-real">
 
 <canvas id="scene" aria-label="Smart Parking maketining 3D ko'rinishi"></canvas>
 
@@ -155,9 +176,17 @@
         <p id="liveText">Serverga ulanmoqda</p>
       </div>
     </div>
-    <a class="link" id="tableLink" href="/">Jadval</a>
+    <div class="barBtns">
+      <button class="link" id="nightBtn" aria-pressed="false">🌙 Tun</button>
+      <a class="link" id="tableLink" href="/">Jadval</a>
+    </div>
   </div>
-  <div class="floors glass" role="group" aria-label="Qavatni tanlash">
+  <div class="seg modes glass" role="group" aria-label="Rejim">
+    <button data-mode="real" aria-pressed="true">Real</button>
+    <button data-mode="sim" aria-pressed="false">Simulyatsiya</button>
+    <button data-mode="demo" aria-pressed="false">Demo</button>
+  </div>
+  <div class="seg floors glass" role="group" aria-label="Qavatni tanlash">
     <button data-floor="0" aria-pressed="true">Hammasi</button>
     <button data-floor="1" aria-pressed="false">1-qavat</button>
     <button data-floor="2" aria-pressed="false">2-qavat</button>
@@ -165,10 +194,26 @@
   </div>
 </div>
 
-<div class="stats glass" aria-live="polite">
-  <span><i style="background:var(--free)"></i><b id="cFree">–</b> bo'sh</span>
-  <span><i style="background:var(--occ)"></i><b id="cOcc">–</b> band</span>
-  <span><i style="background:var(--res)"></i><b id="cRes">–</b> band qilingan</span>
+<p class="hint" id="hint"></p>
+
+<div class="console glass" id="console">
+  <button class="cHead" id="consoleToggle" aria-expanded="false">
+    <span class="counts">
+      <span><i style="background:var(--free)"></i><b id="cFree">–</b> bo'sh</span>
+      <span><i style="background:var(--occ)"></i><b id="cOcc">–</b> band</span>
+      <span><i style="background:var(--res)"></i><b id="cRes">–</b> rezerv</span>
+    </span>
+    <span class="chev" id="chev">Hodisalar ▲</span>
+  </button>
+  <div class="cBody">
+    <div class="scen">
+      <button data-scen="empty">Bo'shatish</button>
+      <button data-scen="full">To'ldirish</button>
+      <button data-scen="random">Tasodifiy</button>
+      <button data-scen="last">Bitta joy qoldi</button>
+    </div>
+    <ul class="log" id="log"></ul>
+  </div>
 </div>
 
 <div class="sheet" id="sheet" role="dialog" aria-labelledby="sheetTitle">
@@ -190,6 +235,7 @@
     <p id="chipsTitle"></p>
     <div id="chipsRow"></div>
   </div>
+  <button class="carBtn" id="btnCar">Mashina qo'yish</button>
   <div class="note" id="sheetNote"></div>
 </div>
 
@@ -202,8 +248,8 @@
   // =====================================================================
   //  O'LCHAMLAR VA RANGLAR
   // =====================================================================
-  const W = 60, D = 40;                  // Bino eni (x) va chuqurligi (z)
-  const FY = { 1: 0, 2: 13, 3: 26 };     // Qavatlar sathi
+  const W = 60, D = 40;
+  const FY = { 1: 0, 2: 13, 3: 26 };
   const SLAB = 1.2;
   const COLOR = { FREE: "#1f9d55", OCCUPIED: "#e03e3e", RESERVED: "#e8a317", NO_DATA: "#8d97a1" };
   const LABEL = {
@@ -212,7 +258,7 @@
     RESERVED: "Band qilingan",
     NO_DATA: "Qavat qurilmasi bilan aloqa yo'q",
   };
-  const CAR_COLORS = [0x1f6fd1, 0xf2c230, 0xc8102e, 0xe9ecef, 0x2b2f36, 0x1c7c54, 0x9aa3ad];
+  const CAR_COLORS = [0x1f6fd1, 0xf2c230, 0xc8102e, 0xe9ecef, 0x2b2f36, 0x1c7c54, 0x8a9099];
   const isPhone = Math.min(window.innerWidth, window.innerHeight) < 600;
 
   // =====================================================================
@@ -231,7 +277,6 @@
   const sceneColor = getComputedStyle(document.documentElement).getPropertyValue("--scene").trim() || "#d9dee3";
   scene.background = new THREE.Color(sceneColor);
 
-  // Mashina bo'yog'i yaltirashi uchun oddiy "studiya" muhiti
   (function buildEnvironment() {
     const env = new THREE.Scene();
     const sky = new THREE.SphereGeometry(100, 32, 16);
@@ -263,7 +308,8 @@
   controls.enablePan = false;
   controls.target.set(7, 12, 4);
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x8e959c, 0.45));
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x8e959c, 0.45);
+  scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xffffff, 1.1);
   sun.position.set(55, 120, 85);
   sun.castShadow = true;
@@ -286,7 +332,6 @@
     return t;
   }
 
-  // Asfalt: mayda donador tekstura
   const asphaltTex = canvasTexture(256, 256, (x, w, h) => {
     x.fillStyle = "#3d4147"; x.fillRect(0, 0, w, h);
     const img = x.getImageData(0, 0, w, h);
@@ -319,38 +364,194 @@
   // =====================================================================
   //  BINO
   // =====================================================================
-  box(190, 2, 120, wood, 10, -SLAB - 1, 14);    // Stol
+  // Tungi rejim uchun ro'yxat
+  const NIGHT = { skyMat: null, lampMat: null, lamps: [], indoor: [], grassMat: null, roadMat: null, on: false };
+
+  // ---------- Atrof-muhit: maysa, yo'l, piyodalar yo'lkasi, daraxtlar ----------
+  (function buildSite() {
+    const G = -SLAB;   // Yer sathi
+
+    // Osmon
+    const skyGeo = new THREE.SphereGeometry(520, 32, 16);
+    const skyPos = skyGeo.attributes.position, skyCols = [];
+    const skyLow = new THREE.Color(0xdfe7ec), skyHigh = new THREE.Color(0x8fb6d8);
+    for (let i = 0; i < skyPos.count; i++) {
+      const t = Math.max(0, skyPos.getY(i) / 520);
+      const c = skyLow.clone().lerp(skyHigh, Math.pow(t, 0.7));
+      skyCols.push(c.r, c.g, c.b);
+    }
+    skyGeo.setAttribute("color", new THREE.Float32BufferAttribute(skyCols, 3));
+    const skyMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, toneMapped: false });
+    const sky = new THREE.Mesh(skyGeo, skyMat);
+    sky.position.y = -40;
+    scene.add(sky);
+    scene.fog = new THREE.Fog(0xcfdae2, 300, 760);
+    NIGHT.skyMat = skyMat;
+
+    // Maysa
+    const grassTex = canvasTexture(256, 256, function (x, w, h) {
+      x.fillStyle = "#5f8a4e"; x.fillRect(0, 0, w, h);
+      for (let i = 0; i < 2600; i++) {
+        x.fillStyle = Math.random() < 0.5 ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.09)";
+        x.fillRect(Math.random() * w, Math.random() * h, 3, 5);
+      }
+    });
+    grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
+    grassTex.repeat.set(24, 24);
+    const grass = new THREE.Mesh(new THREE.PlaneGeometry(700, 700),
+      new THREE.MeshStandardMaterial({ map: grassTex, roughness: 1 }));
+    grass.rotation.x = -Math.PI / 2;
+    grass.position.y = G - 0.1;
+    grass.receiveShadow = true;
+    scene.add(grass);
+
+    const roadMat = new THREE.MeshStandardMaterial({ color: 0x4a4e54, roughness: 0.96 });
+    const walkMat = new THREE.MeshStandardMaterial({ color: 0xb9b5aa, roughness: 0.95 });
+    const curbMat = new THREE.MeshStandardMaterial({ color: 0xd8d4c8, roughness: 0.9 });
+    const lineMat = new THREE.MeshBasicMaterial({ color: 0xe8e4d6 });
+
+    // Bino atrofidagi piyodalar yo'lkasi
+    const walk = mesh(new THREE.BoxGeometry(W + 26, 0.35, D + 26), walkMat, 0, G - 0.05, 0);
+    walk.castShadow = false;
+
+    // Kirish maydoni va yo'l
+    mesh(new THREE.BoxGeometry(70, 0.3, 60), roadMat, 8, G, D / 2 + 42);
+    mesh(new THREE.BoxGeometry(26, 0.3, 200), roadMat, 8, G, D / 2 + 130);
+    for (let i = 0; i < 14; i++) {
+      const dash = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 8), lineMat);
+      dash.rotation.x = -Math.PI / 2;
+      dash.position.set(8, G + 0.2, D / 2 + 46 + i * 15);
+      scene.add(dash);
+    }
+    // Yo'l chekkalari
+    mesh(new THREE.BoxGeometry(1.2, 0.9, 200), curbMat, -6.5, G + 0.2, D / 2 + 130);
+    mesh(new THREE.BoxGeometry(1.2, 0.9, 200), curbMat, 22.5, G + 0.2, D / 2 + 130);
+
+    // Daraxt: bitta geometriya, ko'p nusxa
+    const trunkGeo = new THREE.CylinderGeometry(0.7, 1.0, 9, 8);
+    const leafGeo = new THREE.IcosahedronGeometry(1, 0);
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: 0.95 });
+    const leafMats = [
+      new THREE.MeshStandardMaterial({ color: 0x3f7a42, roughness: 0.9, flatShading: true }),
+      new THREE.MeshStandardMaterial({ color: 0x4f8f4a, roughness: 0.9, flatShading: true }),
+      new THREE.MeshStandardMaterial({ color: 0x35673a, roughness: 0.9, flatShading: true }),
+    ];
+    function tree(x, z, scale) {
+      const g = new THREE.Group();
+      g.position.set(x, G, z);
+      g.scale.setScalar(scale);
+      g.rotation.y = Math.random() * Math.PI;
+      const tr = new THREE.Mesh(trunkGeo, trunkMat);
+      tr.position.y = 4.5; tr.castShadow = true;
+      g.add(tr);
+      const blobs = [[0, 11, 0, 5.2], [2.6, 9.2, 1.4, 3.6], [-2.4, 9.6, -1.6, 3.2], [0.6, 13.4, -1.2, 3.0]];
+      for (let i = 0; i < blobs.length; i++) {
+        const b = blobs[i];
+        const m = new THREE.Mesh(leafGeo, leafMats[i % leafMats.length]);
+        m.position.set(b[0], b[1], b[2]);
+        m.scale.setScalar(b[3]);
+        m.rotation.set(Math.random(), Math.random(), Math.random());
+        m.castShadow = true;
+        g.add(m);
+      }
+      scene.add(g);
+    }
+    const trees = [
+      [-52, -34, 1.1], [-54, -6, 0.95], [-50, 22, 1.15], [-46, 46, 0.9],
+      [-22, 52, 1.0], [4, 56, 0.85], [44, 50, 1.05], [62, 24, 0.95],
+      [66, -12, 1.1], [58, -40, 0.9], [26, -52, 1.0], [-6, -54, 1.1], [-34, -50, 0.95],
+    ];
+    for (const t of trees) tree(t[0], t[1], t[2]);
+
+    // Butalar
+    const bushMat = new THREE.MeshStandardMaterial({ color: 0x477f46, roughness: 0.95, flatShading: true });
+    for (const b of [[-40, 30], [-40, 22], [-40, 14], [40, 34], [48, 34], [-40, -30], [-40, -22]]) {
+      const m = new THREE.Mesh(leafGeo, bushMat);
+      m.position.set(b[0], G + 1.6, b[1]);
+      m.scale.set(2.6, 1.8, 2.6);
+      m.rotation.y = Math.random();
+      m.castShadow = true;
+      scene.add(m);
+    }
+
+    // Ko'cha chiroqlari
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x3a4149, roughness: 0.5, metalness: 0.6 });
+    const lampMat = new THREE.MeshStandardMaterial({ color: 0xfff3d0, emissive: 0xffe9a8, emissiveIntensity: 0.4, roughness: 0.4 });
+    NIGHT.lampMat = lampMat;
+    function lamp(x, z) {
+      const pole = mesh(new THREE.CylinderGeometry(0.45, 0.6, 22, 10), poleMat, x, G + 11, z);
+      pole.receiveShadow = false;
+      mesh(new THREE.BoxGeometry(4.2, 0.8, 2.2), lampMat, x, G + 22, z);
+      const pl = new THREE.PointLight(0xffdf9e, 0, 90, 2);
+      pl.position.set(x, G + 21, z);
+      scene.add(pl);
+      NIGHT.lamps.push(pl);
+    }
+    lamp(-8, D / 2 + 30); lamp(26, D / 2 + 30); lamp(-8, D / 2 + 70); lamp(26, D / 2 + 70);
+
+    // Kirish peshtaxtasi
+    const signTex = canvasTexture(512, 256, function (x) {
+      x.fillStyle = "#1c2530"; x.fillRect(0, 0, 512, 256);
+      x.fillStyle = "#1f9d55"; x.beginPath(); x.arc(96, 128, 56, 0, Math.PI * 2); x.fill();
+      x.fillStyle = "#ffffff";
+      x.font = "700 86px Onest, system-ui, sans-serif";
+      x.textAlign = "center"; x.textBaseline = "middle";
+      x.fillText("P", 96, 132);
+      x.font = "700 44px Onest, system-ui, sans-serif";
+      x.textAlign = "left";
+      x.fillText("SMART", 178, 104);
+      x.fillText("PARKING", 178, 158);
+    });
+    mesh(new THREE.CylinderGeometry(0.5, 0.5, 16, 8), poleMat, 40, G + 8, D / 2 + 22);
+    const signPanel = mesh(new THREE.BoxGeometry(16, 8, 0.6),
+      [poleMat, poleMat, poleMat, poleMat,
+       new THREE.MeshBasicMaterial({ map: signTex, toneMapped: false }), poleMat],
+      40, G + 18, D / 2 + 22);
+    signPanel.rotation.y = -0.35;
+  })();
 
   const floorGroup = { 1: new THREE.Group(), 2: new THREE.Group(), 3: new THREE.Group() };
   Object.values(floorGroup).forEach(g => scene.add(g));
 
-  // Pol: usti asfalt, yon tomonlari oq fomiks
   const slabMats = [foam, foam, asphalt, foam, foam, foam];
 
   for (const f of [1, 2, 3]) {
     const g = floorGroup[f], y = FY[f];
     mesh(new THREE.BoxGeometry(W, SLAB, D), slabMats, 0, y - SLAB / 2, 0, g);
-    box(W + 1, 3, 1.2, foam, 0, y - 1, D / 2 + 0.2, g);             // Oldingi qalin chiziq
+    box(W + 1, 3, 1.2, foam, 0, y - 1, D / 2 + 0.2, g);
 
     if (f < 3) {
       const h = FY[f + 1] - y - SLAB;
-      box(W, h, 1, foam, 0, y + h / 2, -D / 2 + 0.5, g);             // Orqa devor
-      box(1, h, D, foam, -W / 2 + 0.5, y + h / 2, 0, g);             // Chap devor
-      box(3, h, 3, foam, W / 2 - 1.5, y + h / 2, D / 2 - 1.5, g);    // O'ng old ustun
-      box(3, h, 3, foam, W / 2 - 1.5, y + h / 2, -D / 2 + 1.5, g);   // O'ng orqa ustun
+      box(W, h, 1, foam, 0, y + h / 2, -D / 2 + 0.5, g);
+      box(1, h, D, foam, -W / 2 + 0.5, y + h / 2, 0, g);
+      box(3, h, 3, foam, W / 2 - 1.5, y + h / 2, D / 2 - 1.5, g);
+      box(3, h, 3, foam, W / 2 - 1.5, y + h / 2, -D / 2 + 1.5, g);
     } else {
-      box(W, 2.5, 1, foam, 0, y + 1.25, -D / 2 + 0.5, g);            // Tomi ochiq, chekka devorcha
+      box(W, 2.5, 1, foam, 0, y + 1.25, -D / 2 + 0.5, g);
       box(1, 2.5, D, foam, -W / 2 + 0.5, y + 1.25, 0, g);
       box(1, 2.5, 22, foam, W / 2 - 0.5, y + 1.25, 9, g);
     }
   }
-  for (const x of [-15, 0, 15]) box(0.8, 8, 13, foam, x, 4, -13.5, floorGroup[1]);  // 1-qavat bo'luvchilar
+  for (const x of [-15, 0, 15]) box(0.8, 8, 13, foam, x, 4, -13.5, floorGroup[1]);
 
-  // Kirish rampasi
+  // Qavat ichidagi chiroqlar (tungi rejimda yonadi)
+  const ceilMat = new THREE.MeshStandardMaterial({ color: 0xfff6e2, emissive: 0xffeec2, emissiveIntensity: 0.15, roughness: 0.5 });
+  NIGHT.ceilMat = ceilMat;
+  for (const f of [1, 2, 3]) {
+    const top = f < 3 ? FY[f + 1] - 2.2 : FY[f] + 9;
+    for (const x of [-18, 2, 20]) {
+      const strip = box(12, 0.5, 1.6, ceilMat, x, top, 0, floorGroup[f]);
+      strip.castShadow = false;
+    }
+    const pl = new THREE.PointLight(0xffe7bb, 0, 70, 2);
+    pl.position.set(0, top - 2, 0);
+    floorGroup[f].add(pl);
+    NIGHT.indoor.push(pl);
+  }
+
   const ramp = mesh(new THREE.BoxGeometry(16, 0.8, 13), [foam, foam, asphalt, foam, foam, foam], 6, -0.75, D / 2 + 6.4);
   ramp.rotation.x = 0.09;
 
-  // TFT ekran qutisi
   box(8, 5.6, 5.6, new THREE.MeshStandardMaterial({ color: 0x6b7480, roughness: 0.55 }), 21, 1.6, D / 2 + 5);
   const tftCanvas = document.createElement("canvas");
   tftCanvas.width = 256; tftCanvas.height = 160;
@@ -358,9 +559,6 @@
   tftTex.encoding = THREE.sRGBEncoding;
   mesh(new THREE.PlaneGeometry(6.6, 4.2), new THREE.MeshBasicMaterial({ map: tftTex, toneMapped: false }), 21, 1.7, D / 2 + 7.82);
 
-  // =====================================================================
-  //  SPIRAL YO'LAKLAR (o'ng tomonda, ikki qavat)
-  // =====================================================================
   function spiral(y0, y1, parent) {
     const N = 56, R = 12, half = 4.2, cx = W / 2, curb = 1.6;
     const top = [], uv = [], outer = [], inner = [];
@@ -374,7 +572,8 @@
     }
     const idx = [];
     for (let i = 0; i < N; i++) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
-    [[top, asphaltDS, uv], [outer, foamDS], [inner, foamDS]].forEach(([pts, mat, uvs]) => {
+    [[top, asphaltDS, uv], [outer, foamDS, null], [inner, foamDS, null]].forEach(function (item) {
+      const pts = item[0], mat = item[1], uvs = item[2];
       const geo = new THREE.BufferGeometry();
       geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
       if (uvs) geo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
@@ -389,10 +588,9 @@
   spiral(FY[2] + 0.05, FY[3], floorGroup[3]);
 
   // =====================================================================
-  //  REALISTIK MASHINA (geometriyalar bir marta yaratiladi)
+  //  MASHINA
   // =====================================================================
   const CAR = (function () {
-    // Kuzov: yon profil, g'ildirak o'yiqlari bilan
     const body = new THREE.Shape();
     body.moveTo(-4.7, 0.55);
     body.lineTo(-4.78, 1.35);
@@ -408,12 +606,11 @@
     body.absarc(-3.0, 0.55, 1.25, 0, Math.PI, false);
     body.lineTo(-4.7, 0.55);
     const bodyGeo = new THREE.ExtrudeGeometry(body, {
-      depth: 4.4, bevelEnabled: true, bevelThickness: 0.28, bevelSize: 0.22, bevelSegments: 4, curveSegments: 18,
+      depth: 4.4, bevelEnabled: true, bevelThickness: 0.3, bevelSize: 0.24, bevelSegments: 4, curveSegments: 18,
     });
     bodyGeo.translate(0, 0, -2.2);
-    bodyGeo.rotateY(-Math.PI / 2);          // Old tomoni -z ga qaraydi
+    bodyGeo.rotateY(-Math.PI / 2);
 
-    // Salon (oynalar)
     const cabin = new THREE.Shape();
     cabin.moveTo(-1.95, 2.15);
     cabin.quadraticCurveTo(-1.1, 2.95, -0.7, 3.12);
@@ -427,49 +624,72 @@
     cabinGeo.rotateY(-Math.PI / 2);
 
     const roofGeo = new THREE.BoxGeometry(4.1, 0.16, 2.3);
-    const tireGeo = new THREE.CylinderGeometry(1.0, 1.0, 0.85, 24);
-    tireGeo.rotateZ(Math.PI / 2);
-    const rimGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.9, 18);
-    rimGeo.rotateZ(Math.PI / 2);
+    const tireGeo = new THREE.CylinderGeometry(1.0, 1.0, 0.85, 24); tireGeo.rotateZ(Math.PI / 2);
+    const rimGeo = new THREE.CylinderGeometry(0.62, 0.62, 0.9, 18); rimGeo.rotateZ(Math.PI / 2);
     const lampGeo = new THREE.BoxGeometry(1.1, 0.35, 0.15);
     const mirrorGeo = new THREE.BoxGeometry(0.5, 0.3, 0.5);
+    const grilleGeo = new THREE.BoxGeometry(2.6, 0.5, 0.12);
+    const plateGeo = new THREE.BoxGeometry(1.5, 0.4, 0.1);
+    const shadowGeo = new THREE.CircleGeometry(1, 24);
+    shadowGeo.rotateX(-Math.PI / 2);
+    shadowGeo.scale(3.4, 1, 5.4);
 
     const glass = new THREE.MeshPhysicalMaterial({ color: 0x0e141b, roughness: 0.05, metalness: 0.6, clearcoat: 1 });
     const tire = new THREE.MeshStandardMaterial({ color: 0x16191d, roughness: 0.92 });
     const rim = new THREE.MeshStandardMaterial({ color: 0xc9ced4, roughness: 0.28, metalness: 1 });
     const head = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff4d6, emissiveIntensity: 0.9 });
     const tail = new THREE.MeshStandardMaterial({ color: 0x8a0f14, emissive: 0xff2a2a, emissiveIntensity: 0.6 });
+    const grille = new THREE.MeshStandardMaterial({ color: 0x14181d, roughness: 0.6, metalness: 0.5 });
+    const plate = new THREE.MeshStandardMaterial({ color: 0xe8e8e2, roughness: 0.6 });
+    const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22, depthWrite: false });
 
     return function make(color) {
       const g = new THREE.Group();
+      NIGHT.head = head; NIGHT.tail = tail;
       const paintMat = new THREE.MeshPhysicalMaterial({
-        color, roughness: 0.32, metalness: 0.45, clearcoat: 1, clearcoatRoughness: 0.06,
+        color: color, roughness: 0.3, metalness: 0.45, clearcoat: 1, clearcoatRoughness: 0.05,
       });
-      const add = (geo, mat, x = 0, y = 0, z = 0) => {
+      const add = function (geo, mat, x, y, z) {
         const m = new THREE.Mesh(geo, mat);
-        m.position.set(x, y, z);
+        m.position.set(x || 0, y || 0, z || 0);
         m.castShadow = true;
         g.add(m);
         return m;
       };
+      const sh = add(shadowGeo, shadowMat, 0, 0.04, 0);
+      sh.castShadow = false;
       add(bodyGeo, paintMat);
       add(cabinGeo, glass);
       add(roofGeo, paintMat, 0, 3.26, 0.35);
-      for (const [x, z] of [[-2.25, 3.0], [2.25, 3.0], [-2.25, -3.0], [2.25, -3.0]]) {
-        add(tireGeo, tire, x, 1.0, z);
-        add(rimGeo, rim, x, 1.0, z);
+      for (const wheel of [[-2.25, 3.0], [2.25, 3.0], [-2.25, -3.0], [2.25, -3.0]]) {
+        add(tireGeo, tire, wheel[0], 1.0, wheel[1]);
+        add(rimGeo, rim, wheel[0], 1.0, wheel[1]);
       }
-      add(lampGeo, head, -1.6, 1.55, -4.95); add(lampGeo, head, 1.6, 1.55, -4.95);
-      add(lampGeo, tail, -1.6, 1.6, 4.97);   add(lampGeo, tail, 1.6, 1.6, 4.97);
+      add(grilleGeo, grille, 0, 1.5, -4.92);
+      add(plateGeo, plate, 0, 1.0, -4.95);
+      add(plateGeo, plate, 0, 1.05, 4.95);
+      add(lampGeo, head, -1.85, 1.6, -4.93); add(lampGeo, head, 1.85, 1.6, -4.93);
+      add(lampGeo, tail, -1.7, 1.65, 4.95);  add(lampGeo, tail, 1.7, 1.65, 4.95);
       add(mirrorGeo, paintMat, -2.65, 2.35, -1.7); add(mirrorGeo, paintMat, 2.65, 2.35, -1.7);
       return g;
     };
   })();
 
+  // Tashqarida turgan mashinalar (jonlilik uchun)
+  (function outsideCars() {
+    const a = CAR(0xc8102e);
+    a.position.set(-16, -SLAB + 0.15, D / 2 + 34);
+    a.rotation.y = Math.PI / 2;
+    scene.add(a);
+    const b = CAR(0x1f6fd1);
+    b.position.set(8, -SLAB + 0.15, D / 2 + 62);
+    b.rotation.y = Math.PI;
+    scene.add(b);
+  })();
+
   // =====================================================================
-  //  JOYLAR (sizning sxemangiz bo'yicha)
+  //  JOYLAR
   // =====================================================================
-  // rot: joyga kirish yo'nalishi. BACK = oldinga (+z), LEFT = o'ngga (+x), FRONT = orqaga (-z)
   const BACK = 0, LEFT = Math.PI / 2, FRONT = Math.PI;
   const LAYOUT = {
     1: [
@@ -495,14 +715,15 @@
       { n: 6, x: -4,  z: -13, rot: BACK,  sw: 13, sd: 12 },
     ],
   };
+  const FLOOR_SLOTS = { 1: 5, 2: 5, 3: 6 };
 
-  const stripeTex = canvasTexture(128, 32, (x) => {
+  const stripeTex = canvasTexture(128, 32, function (x) {
     for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? "#1c2530" : "#f2b01e"; x.fillRect(i * 16, 0, 16, 32); }
   });
   const barrierMat = new THREE.MeshStandardMaterial({ map: stripeTex, roughness: 0.45 });
 
   function numberTex(text) {
-    return canvasTexture(128, 128, (x) => {
+    return canvasTexture(128, 128, function (x) {
       x.fillStyle = "rgba(243,241,232,.9)";
       x.font = "700 70px Onest, system-ui, sans-serif";
       x.textAlign = "center"; x.textBaseline = "middle";
@@ -516,42 +737,38 @@
 
   for (const f of [1, 2, 3]) {
     for (const s of LAYOUT[f]) {
-      const key = `${f}-${s.n}`;
+      const key = f + "-" + s.n;
       const g = new THREE.Group();
       g.position.set(s.x, FY[f], s.z);
       g.rotation.y = s.rot;
       floorGroup[f].add(g);
 
-      // Holat rangi (yengil bo'yoq)
       const tintMat = new THREE.MeshBasicMaterial({ color: COLOR.FREE, transparent: true, opacity: 0.34, depthWrite: false, toneMapped: false });
       const tint = new THREE.Mesh(new THREE.PlaneGeometry(s.sw - 0.8, s.sd - 0.6), tintMat);
       tint.rotation.x = -Math.PI / 2; tint.position.y = 0.03; tint.userData.key = key;
       g.add(tint); pickables.push(tint);
 
-      // Oq chiziqlar: orqa va ikki yon
       const lw = 0.32;
-      [[s.sw, lw, 0, -s.sd / 2 + lw / 2], [lw, s.sd, -s.sw / 2 + lw / 2, 0], [lw, s.sd, s.sw / 2 - lw / 2, 0]].forEach(([w, d, x, z]) => {
-        const l = new THREE.Mesh(new THREE.PlaneGeometry(w, d), paint);
-        l.rotation.x = -Math.PI / 2; l.position.set(x, 0.05, z);
-        g.add(l);
-      });
+      const lines = [[s.sw, lw, 0, -s.sd / 2 + lw / 2], [lw, s.sd, -s.sw / 2 + lw / 2, 0], [lw, s.sd, s.sw / 2 - lw / 2, 0]];
+      for (const l of lines) {
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(l[0], l[1]), paint);
+        m.rotation.x = -Math.PI / 2; m.position.set(l[2], 0.05, l[3]);
+        g.add(m);
+      }
 
-      // Joy raqami (asfaltga bo'yalgan)
       const num = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 4.6),
         new THREE.MeshBasicMaterial({ map: numberTex(String(s.n)), transparent: true, depthWrite: false }));
       num.rotation.x = -Math.PI / 2; num.position.set(0, 0.06, -1);
       g.add(num);
 
-      // Mashina
       const car = CAR(CAR_COLORS[carIndex++ % CAR_COLORS.length]);
       car.position.z = -0.4;
       car.visible = false;
-      car.traverse(o => { if (o.isMesh) { o.userData.key = key; pickables.push(o); } });
+      car.traverse(function (o) { if (o.isMesh) { o.userData.key = key; pickables.push(o); } });
       g.add(car);
 
-      // Shlagbaum: yerda yotadi, band qilinganda 90° ko'tariladi
       const hingeZ = s.sd / 2 - 0.7;
-      box(1.1, 0.9, 1.1, darkMetal, -3.3, 0.45, hingeZ, g);    // Servo korpusi
+      box(1.1, 0.9, 1.1, darkMetal, -3.3, 0.45, hingeZ, g);
       const pivot = new THREE.Group();
       pivot.position.set(0, 0.25, hingeZ);
       g.add(pivot);
@@ -559,9 +776,8 @@
       plate.position.y = 1.6;
       plate.castShadow = true;
       pivot.add(plate);
-      pivot.rotation.x = -Math.PI / 2;                         // Ochiq: yerda yotadi
+      pivot.rotation.x = -Math.PI / 2;
 
-      // Taymer (band qilingan joy ustida)
       const tCanvas = document.createElement("canvas");
       tCanvas.width = 256; tCanvas.height = 96;
       const tTex = new THREE.CanvasTexture(tCanvas);
@@ -574,15 +790,16 @@
       g.add(timer);
 
       slots[key] = {
-        f, n: s.n, status: null, remaining: 0, canExtend: false, extended: false,
-        tintMat, car, pivot, timer, tCanvas, tTex, lastTimerText: "", dropY: 0,
+        f: f, n: s.n, status: null, remaining: 0, canExtend: false, extended: false, value: null,
+        tintMat: tintMat, car: car, pivot: pivot, timer: timer, tCanvas: tCanvas, tTex: tTex,
+        lastTimerText: "", dropY: 0,
       };
     }
   }
 
   function fmt(sec) {
     sec = Math.max(0, sec | 0);
-    return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+    return String(Math.floor(sec / 60)).padStart(2, "0") + ":" + String(sec % 60).padStart(2, "0");
   }
 
   function drawTimer(s) {
@@ -592,7 +809,9 @@
     const x = s.tCanvas.getContext("2d");
     x.clearRect(0, 0, 256, 96);
     x.fillStyle = s.remaining <= 60 ? "#e03e3e" : "#1c2530";
-    x.beginPath(); x.roundRect ? x.roundRect(8, 8, 240, 80, 22) : x.rect(8, 8, 240, 80); x.fill();
+    x.beginPath();
+    if (x.roundRect) x.roundRect(8, 8, 240, 80, 22); else x.rect(8, 8, 240, 80);
+    x.fill();
     x.fillStyle = "#ffffff";
     x.font = "700 54px Onest, system-ui, sans-serif";
     x.textAlign = "center"; x.textBaseline = "middle";
@@ -600,24 +819,22 @@
     s.tTex.needsUpdate = true;
   }
 
-  // =====================================================================
-  //  MA'LUMOTNI 3D GA QO'LLASH
-  // =====================================================================
   const floorOnline = { 1: true, 2: true, 3: true };
 
   function applyData(data) {
     let free = 0, occ = 0, res = 0;
-    for (const [fk, fd] of Object.entries(data.floors || {})) {
-      const f = Number(fk);
+    for (const fk of Object.keys(data.floors || {})) {
+      const fd = data.floors[fk], f = Number(fk);
       floorOnline[f] = !!fd.online;
       for (const it of fd.slots || []) {
-        const s = slots[`${f}-${it.slot}`];
+        const s = slots[f + "-" + it.slot];
         if (!s) continue;
         let st = it.status;
         if (!fd.online && st !== "RESERVED") st = "NO_DATA";
         s.remaining = it.remaining || 0;
         s.canExtend = !!it.canExtend;
         s.extended = !!it.extended;
+        s.value = (it.value === undefined) ? null : it.value;
         setVisual(s, st);
         if (st === "FREE") free++;
         if (st === "OCCUPIED") occ++;
@@ -627,10 +844,11 @@
     document.getElementById("cFree").textContent = free;
     document.getElementById("cOcc").textContent = occ;
     document.getElementById("cRes").textContent = res;
-    document.querySelectorAll(".floors button[data-floor]").forEach(b => {
+    const btns = document.querySelectorAll(".seg.floors button");
+    for (const b of btns) {
       const f = Number(b.dataset.floor);
       b.classList.toggle("offline", f > 0 && !floorOnline[f]);
-    });
+    }
     drawTft();
     if (openKey) fillSheet();
   }
@@ -653,14 +871,15 @@
     x.fillStyle = "#0d1218"; x.fillRect(0, 0, 256, 160);
     x.fillStyle = "#ffffff"; x.font = "700 20px sans-serif";
     x.fillText("SMART PARKING", 12, 28);
-    const free = Object.values(slots).filter(s => s.status === "FREE").length;
+    let free = 0;
+    for (const k of Object.keys(slots)) if (slots[k].status === "FREE") free++;
     x.fillStyle = "#2fc46b"; x.font = "700 18px sans-serif";
     x.fillText("Bo'sh: " + free + " / 16", 12, 54);
     for (const f of [1, 2, 3]) {
       x.fillStyle = "#cfd6de"; x.font = "14px sans-serif";
       x.fillText(f + "-QAVAT", 12, 64 + f * 28);
-      LAYOUT[f].forEach((l, i) => {
-        x.fillStyle = COLOR[slots[`${f}-${l.n}`].status || "NO_DATA"];
+      LAYOUT[f].forEach(function (l, i) {
+        x.fillStyle = COLOR[slots[f + "-" + l.n].status || "NO_DATA"];
         x.fillRect(90 + i * 26, 50 + f * 28, 20, 20);
       });
     }
@@ -668,104 +887,233 @@
   }
 
   // =====================================================================
-  //  SERVER BILAN ALOQA (real vaqt), server bo'lmasa DEMO
+  //  PASTKI EKRAN: HODISALAR
   // =====================================================================
-  let mode = "connecting", everLive = false, failCount = 0, pollTimer = null;
+  const logEl = document.getElementById("log");
+  let localLog = [];
 
-  function setMode(m) {
-    if (mode === m) return;
-    mode = m;
-    const dot = document.getElementById("dot"), txt = document.getElementById("liveText");
-    dot.className = "dot " + (m === "live" ? "live" : m === "demo" ? "demo" : m === "lost" ? "lost" : "");
-    txt.textContent = {
-      live: "Real vaqt rejimi",
-      demo: "Demo: server topilmadi, ma'lumot tasodifiy",
-      lost: "Server bilan aloqa uzildi",
-      connecting: "Serverga ulanmoqda",
-    }[m];
-    document.getElementById("tableLink").style.display = m === "demo" ? "none" : "";
+  function renderLog(list) {
+    if (!list.length) { logEl.innerHTML = "<li>Hozircha hodisa yo'q</li>"; return; }
+    logEl.innerHTML = list.slice(0, 30).map(function (e) {
+      const t = new Date(e.time);
+      const hh = String(t.getHours()).padStart(2, "0") + ":" + String(t.getMinutes()).padStart(2, "0") + ":" + String(t.getSeconds()).padStart(2, "0");
+      return "<li><time>" + hh + "</time>" + e.text + "</li>";
+    }).join("");
   }
 
+  function addLocalLog(text) {
+    localLog.unshift({ time: new Date().toISOString(), text: text });
+    if (localLog.length > 50) localLog.pop();
+    renderLog(localLog);
+  }
+
+  const consoleEl = document.getElementById("console");
+  document.getElementById("consoleToggle").addEventListener("click", function () {
+    const open = consoleEl.classList.toggle("open");
+    document.getElementById("consoleToggle").setAttribute("aria-expanded", String(open));
+    document.getElementById("chev").textContent = open ? "Hodisalar ▼" : "Hodisalar ▲";
+  });
+
+  // =====================================================================
+  //  MAHALLIY DVIGATEL (simulyatsiya va demo)
+  // =====================================================================
+  const local = {};
+  for (const k of Object.keys(slots)) local[k] = { car: false, reserved: false, until: 0, extended: false };
+
+  function localReset(fill) {
+    for (const k of Object.keys(local)) {
+      local[k] = { car: fill === "full", reserved: false, until: 0, extended: false };
+      if (fill === "random") local[k].car = Math.random() < 0.45;
+    }
+  }
+
+  function localSnapshot() {
+    const now = Date.now();
+    const data = { floors: {} };
+    for (const f of [1, 2, 3]) {
+      data.floors[f] = {
+        online: true,
+        slots: LAYOUT[f].map(function (l) {
+          const d = local[f + "-" + l.n];
+          if (d.reserved && now >= d.until) {
+            d.reserved = false; d.extended = false;
+            addLocalLog(f + "-qavat, " + l.n + "-joy: muddat tugadi, to'siq tushirildi");
+          }
+          const remaining = d.reserved ? Math.ceil((d.until - now) / 1000) : 0;
+          const status = d.reserved ? "RESERVED" : (d.car ? "OCCUPIED" : "FREE");
+          return {
+            slot: l.n, status: status, remaining: remaining, extended: d.extended,
+            canExtend: d.reserved && !d.extended && remaining <= 60,
+            value: d.car ? Math.round(Math.random() * 6) : 1200 + Math.round(Math.random() * 400),
+          };
+        }),
+      };
+    }
+    return data;
+  }
+
+  function localAct(action, f, n, minutes) {
+    const d = local[f + "-" + n];
+    if (!d) return;
+    if (action === "reserve") {
+      if (d.car || d.reserved) { toast("Bu joyni band qilib bo'lmaydi"); return; }
+      d.reserved = true; d.until = Date.now() + minutes * 60000; d.extended = false;
+      addLocalLog(f + "-qavat, " + n + "-joy " + minutes + " daqiqaga band qilindi, to'siq ko'tarildi");
+    } else if (action === "extend") {
+      if (!d.reserved || d.extended) return;
+      d.until += minutes * 60000; d.extended = true;
+      addLocalLog(f + "-qavat, " + n + "-joy: " + minutes + " daqiqa vaqt qo'shildi");
+    } else if (action === "arrive") {
+      if (!d.reserved) return;
+      d.reserved = false; d.extended = false;
+      addLocalLog(f + "-qavat, " + n + "-joy: haydovchi yetib keldi, to'siq tushirildi");
+    }
+    applyData(localSnapshot());
+  }
+
+  function localToggleCar(f, n) {
+    const d = local[f + "-" + n];
+    if (!d) return;
+    if (d.reserved && !d.car) {
+      d.reserved = false; d.extended = false;
+      addLocalLog(f + "-qavat, " + n + "-joy: band qilingan joyga mashina qo'yildi");
+      d.car = true;
+    } else {
+      d.car = !d.car;
+      addLocalLog(f + "-qavat, " + n + "-joy: mashina " + (d.car ? "qo'yildi (sensor: BAND)" : "olindi (sensor: BO'SH)"));
+    }
+    applyData(localSnapshot());
+  }
+
+  // =====================================================================
+  //  REJIMLAR
+  // =====================================================================
+  let mode = "real", everLive = false, failCount = 0, pollTimer = null, localTimer = null, demoTimer = null;
+
+  const MODE_TEXT = {
+    real: "Real rejim: maketga ulanmoqda",
+    sim: "Simulyatsiya: mashinalarni siz qo'yasiz",
+    demo: "Demo: mashinalar o'z-o'zidan keladi",
+    lost: "Server bilan aloqa uzildi",
+    live: "Real rejim: maket bilan jonli aloqa",
+  };
+  const HINT = {
+    real: "Mashinani sensor aniqlaydi. Joyni bosib band qilishingiz mumkin.",
+    sim: isPhone ? "Mashina qo'yish yoki olish: joyni uzoq bosing. Band qilish: bir marta bosing."
+                 : "Mashina qo'yish yoki olish: joyni sichqonchaning o'ng tugmasi bilan bosing. Band qilish: chap tugma.",
+    demo: "Mashinalar avtomatik kelib-ketadi. Joyni bosib band qilib ko'ring.",
+  };
+
+  function setStatusText(kind) {
+    const dot = document.getElementById("dot"), txt = document.getElementById("liveText");
+    dot.className = "dot " + (kind === "live" ? "live" : kind === "sim" ? "sim" : kind === "demo" ? "demo" : kind === "lost" ? "lost" : "");
+    txt.textContent = MODE_TEXT[kind];
+  }
+
+  function stopTimers() {
+    clearInterval(pollTimer); clearInterval(localTimer); clearInterval(demoTimer);
+    pollTimer = localTimer = demoTimer = null;
+  }
+
+  function setMode(next) {
+    mode = next;
+    stopTimers();
+    closeSheet();
+    document.body.className = "mode-" + next;
+    const btns = document.querySelectorAll(".seg.modes button");
+    for (const b of btns) b.setAttribute("aria-pressed", String(b.dataset.mode === next));
+    document.getElementById("hint").textContent = HINT[next];
+    document.getElementById("tableLink").style.display = next === "real" ? "" : "none";
+
+    if (next === "real") {
+      everLive = false; failCount = 0;
+      setStatusText("real");
+      poll();
+      pollTimer = setInterval(poll, 1000);
+    } else {
+      setStatusText(next);
+      localReset(next === "demo" ? "random" : "empty");
+      localLog = [];
+      addLocalLog(next === "demo" ? "Demo rejim yoqildi" : "Simulyatsiya rejimi yoqildi, parking bo'sh");
+      applyData(localSnapshot());
+      localTimer = setInterval(function () { applyData(localSnapshot()); }, 1000);
+      if (next === "demo") {
+        demoTimer = setInterval(function () {
+          const keys = Object.keys(local);
+          const k = keys[Math.floor(Math.random() * keys.length)];
+          const d = local[k];
+          if (d.reserved) return;
+          const parts = k.split("-");
+          localToggleCar(Number(parts[0]), Number(parts[1]));
+        }, 3500);
+      }
+    }
+  }
+
+  const modeBtns = document.querySelectorAll(".seg.modes button");
+  for (const b of modeBtns) b.addEventListener("click", function () { setMode(b.dataset.mode); });
+
+  const scenBtns = document.querySelectorAll(".scen button");
+  for (const b of scenBtns) b.addEventListener("click", function () {
+    if (mode === "real") { toast("Senariylar faqat simulyatsiya rejimida ishlaydi"); return; }
+    const s = b.dataset.scen;
+    if (s === "empty") { localReset("empty"); addLocalLog("Senariy: parking bo'shatildi"); }
+    if (s === "full") { localReset("full"); addLocalLog("Senariy: parking to'ldirildi"); }
+    if (s === "random") { localReset("random"); addLocalLog("Senariy: tasodifiy holat"); }
+    if (s === "last") {
+      localReset("full");
+      local["2-3"] = { car: false, reserved: false, until: 0, extended: false };
+      addLocalLog("Senariy: faqat bitta joy bo'sh qoldi (2-qavat, 3-joy)");
+    }
+    applyData(localSnapshot());
+  });
+
+  // =====================================================================
+  //  SERVER (real rejim)
+  // =====================================================================
   async function poll() {
+    if (mode !== "real") return;
     try {
       const r = await fetch("/api/status", { cache: "no-store" });
-      if (!r.ok) throw new Error("status " + r.status);
+      if (!r.ok) throw new Error("status");
       const data = await r.json();
       if (!data || !data.floors) throw new Error("format");
       everLive = true; failCount = 0;
-      setMode("live");
+      setStatusText("live");
       applyData(data);
+      try {
+        const re = await fetch("/api/events", { cache: "no-store" });
+        if (re.ok) renderLog(await re.json());
+      } catch (e2) { /* hodisalar tarixi ixtiyoriy */ }
     } catch (e) {
       failCount++;
-      if (!everLive && failCount >= 2) startDemo();
-      else if (everLive) setMode("lost");
+      if (failCount >= 2) setStatusText("lost");
+      if (!everLive && failCount === 3) {
+        renderLog([{ time: new Date().toISOString(), text: "Server topilmadi. Simulyatsiya rejimiga o'ting." }]);
+      }
     }
   }
 
   async function act(action, minutes) {
     const s = slots[openKey];
     if (!s) return;
-    if (mode === "demo") { demoAct(action, s, minutes); return; }
+    if (mode !== "real") { localAct(action, s.f, s.n, minutes); return; }
     try {
       const r = await fetch("/api/" + action, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ floor: s.f, slot: s.n, minutes }),
+        body: JSON.stringify({ floor: s.f, slot: s.n, minutes: minutes }),
       });
       if (!r.ok) {
-        const j = await r.json().catch(() => ({}));
+        const j = await r.json().catch(function () { return {}; });
         toast(j.error || "Amal bajarilmadi");
       } else {
-        toast({ reserve: "Joy band qilindi, shlagbaum ko'tarilmoqda", extend: "Vaqt qo'shildi", arrive: "Shlagbaum tushirildi, xush kelibsiz" }[action]);
+        toast({ reserve: "Joy band qilindi, to'siq ko'tarilmoqda", extend: "Vaqt qo'shildi", arrive: "To'siq tushirildi, xush kelibsiz" }[action]);
       }
     } catch (e) {
-      toast("Server bilan aloqa yo'q. Internetni tekshiring.");
+      toast("Server bilan aloqa yo'q");
     }
     poll();
-  }
-
-  // ---------- DEMO (faqat server bo'lmaganda) ----------
-  let demo = null;
-  function startDemo() {
-    if (mode === "demo") return;
-    clearInterval(pollTimer);
-    setMode("demo");
-    demo = {};
-    Object.keys(slots).forEach(k => {
-      demo[k] = { status: Math.random() < 0.45 ? "OCCUPIED" : "FREE", until: 0, extended: false };
-    });
-    demo["2-3"] = { status: "RESERVED", until: Date.now() + 70000, extended: false };
-    demoTick();
-    setInterval(demoTick, 1000);
-  }
-  function demoTick() {
-    const now = Date.now();
-    if (Math.random() < 0.3) {
-      const keys = Object.keys(demo), k = keys[Math.floor(Math.random() * keys.length)];
-      if (demo[k].status === "FREE") demo[k].status = "OCCUPIED";
-      else if (demo[k].status === "OCCUPIED") demo[k].status = "FREE";
-    }
-    const data = { floors: {} };
-    for (const f of [1, 2, 3]) {
-      data.floors[f] = {
-        online: true,
-        slots: LAYOUT[f].map(l => {
-          const d = demo[`${f}-${l.n}`];
-          if (d.status === "RESERVED" && now >= d.until) { d.status = "FREE"; d.extended = false; }
-          const remaining = d.status === "RESERVED" ? Math.ceil((d.until - now) / 1000) : 0;
-          return { slot: l.n, status: d.status, remaining, extended: d.extended,
-                   canExtend: d.status === "RESERVED" && !d.extended && remaining <= 60 };
-        }),
-      };
-    }
-    applyData(data);
-  }
-  function demoAct(action, s, minutes) {
-    const d = demo[`${s.f}-${s.n}`];
-    if (action === "reserve" && d.status === "FREE") { d.status = "RESERVED"; d.until = Date.now() + minutes * 60000; d.extended = false; toast("Joy band qilindi (demo)"); }
-    if (action === "extend" && d.status === "RESERVED") { d.until += minutes * 60000; d.extended = true; toast("Vaqt qo'shildi (demo)"); }
-    if (action === "arrive" && d.status === "RESERVED") { d.status = "FREE"; d.until = 0; d.extended = false; toast("Shlagbaum tushirildi (demo)"); }
-    demoTick();
   }
 
   // =====================================================================
@@ -785,13 +1133,14 @@
     openKey = null; chipsFor = null;
     sheet.classList.remove("open");
     document.body.classList.remove("sheet-open");
+    chips.classList.remove("show");
   }
 
   function fillSheet() {
     const s = slots[openKey];
     if (!s) return;
     const st = s.status || "NO_DATA";
-    document.getElementById("sheetTitle").textContent = `${s.f}-qavat, ${s.n}-joy`;
+    document.getElementById("sheetTitle").textContent = s.f + "-qavat, " + s.n + "-joy";
     const stEl = document.getElementById("sheetState");
     stEl.textContent = LABEL[st];
     stEl.style.color = COLOR[st];
@@ -809,9 +1158,13 @@
     bR.classList.toggle("primary", st === "FREE");
     bA.classList.toggle("primary", st === "RESERVED");
 
+    const carBtn = document.getElementById("btnCar");
+    carBtn.textContent = st === "OCCUPIED" ? "Mashinani olish" : "Mashina qo'yish";
+
     let note = "";
     if (st === "RESERVED" && !s.extended && !s.canExtend) note = "Vaqt qo'shish oxirgi 1 daqiqada ochiladi.";
     if (st === "RESERVED" && s.extended) note = "Vaqt faqat bir marta qo'shiladi.";
+    if (s.value !== null && s.value !== undefined) note = note ? note + "  Sensor: " + s.value : "Sensor qiymati: " + s.value;
     document.getElementById("sheetNote").textContent = note;
 
     if ((chipsFor === "reserve" && st !== "FREE") || (chipsFor === "extend" && !s.canExtend)) showChips(null);
@@ -822,14 +1175,19 @@
     if (!type) { chips.classList.remove("show"); return; }
     const opts = type === "reserve" ? [10, 15, 20] : [1, 2, 3, 4, 5];
     document.getElementById("chipsTitle").textContent = type === "reserve" ? "Qancha vaqtga band qilasiz?" : "Qancha vaqt qo'shasiz?";
-    document.getElementById("chipsRow").innerHTML = opts.map(m => `<button data-min="${m}">${m} daq</button>`).join("");
+    document.getElementById("chipsRow").innerHTML = opts.map(function (m) { return '<button data-min="' + m + '">' + m + " daq</button>"; }).join("");
     chips.classList.add("show");
   }
 
-  document.getElementById("btnReserve").addEventListener("click", () => showChips(chipsFor === "reserve" ? null : "reserve"));
-  document.getElementById("btnExtend").addEventListener("click", () => showChips(chipsFor === "extend" ? null : "extend"));
-  document.getElementById("btnArrive").addEventListener("click", () => { showChips(null); act("arrive"); });
-  document.getElementById("chipsRow").addEventListener("click", e => {
+  document.getElementById("btnReserve").addEventListener("click", function () { showChips(chipsFor === "reserve" ? null : "reserve"); });
+  document.getElementById("btnExtend").addEventListener("click", function () { showChips(chipsFor === "extend" ? null : "extend"); });
+  document.getElementById("btnArrive").addEventListener("click", function () { showChips(null); act("arrive"); });
+  document.getElementById("btnCar").addEventListener("click", function () {
+    if (mode === "real") { toast("Real rejimda mashinani sensor aniqlaydi"); return; }
+    const s = slots[openKey];
+    if (s) localToggleCar(s.f, s.n);
+  });
+  document.getElementById("chipsRow").addEventListener("click", function (e) {
     const b = e.target.closest("button[data-min]");
     if (!b || !chipsFor) return;
     const type = chipsFor;
@@ -844,21 +1202,21 @@
     el.textContent = msg;
     el.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+    toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2600);
   }
 
   // =====================================================================
   //  QAVAT TANLASH VA KAMERA
   // =====================================================================
   let targetY = 12, focusFloor = 0;
-  const floorBtns = document.querySelectorAll(".floors button");
-  floorBtns.forEach(b => b.addEventListener("click", () => {
+  const floorBtns = document.querySelectorAll(".seg.floors button");
+  for (const b of floorBtns) b.addEventListener("click", function () {
     focusFloor = Number(b.dataset.floor);
-    floorBtns.forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    for (const x of floorBtns) x.setAttribute("aria-pressed", String(x === b));
     for (const k of [1, 2, 3]) floorGroup[k].visible = focusFloor === 0 || k <= focusFloor;
     targetY = focusFloor === 0 ? 12 : FY[focusFloor] + 2;
     closeSheet();
-  }));
+  });
 
   function fitCamera() {
     const aspect = camera.aspect;
@@ -879,29 +1237,64 @@
   fitCamera();
 
   // =====================================================================
-  //  JOYNI BOSISH
+  //  BOSISH: chap tugma = joy oynasi, o'ng tugma yoki uzoq bosish = mashina
   // =====================================================================
   const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2();
-  let down = null;
-  canvas.addEventListener("pointerdown", e => { down = { x: e.clientX, y: e.clientY }; });
-  canvas.addEventListener("pointerup", e => {
-    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8) return;
+  let down = null, longTimer = null, longFired = false;
+
+  function shown(o) { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; }
+
+  function pickAt(clientX, clientY) {
     const r = canvas.getBoundingClientRect();
-    pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
-    pointer.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+    pointer.x = ((clientX - r.left) / r.width) * 2 - 1;
+    pointer.y = -((clientY - r.top) / r.height) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
     const hit = raycaster.intersectObjects(pickables.filter(shown), false)[0];
-    if (hit) openSheet(hit.object.userData.key); else closeSheet();
+    return hit ? hit.object.userData.key : null;
+  }
+
+  function toggleCarAt(key) {
+    if (!key) return;
+    if (mode === "real") { toast("Real rejimda mashinani sensor aniqlaydi"); return; }
+    const s = slots[key];
+    localToggleCar(s.f, s.n);
+  }
+
+  canvas.addEventListener("pointerdown", function (e) {
+    down = { x: e.clientX, y: e.clientY };
+    longFired = false;
+    clearTimeout(longTimer);
+    longTimer = setTimeout(function () {
+      longFired = true;
+      toggleCarAt(pickAt(e.clientX, e.clientY));
+    }, 550);
   });
-  function shown(o) { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; }
+  canvas.addEventListener("pointermove", function (e) {
+    if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8) clearTimeout(longTimer);
+  });
+  canvas.addEventListener("pointercancel", function () { clearTimeout(longTimer); });
+  canvas.addEventListener("pointerup", function (e) {
+    clearTimeout(longTimer);
+    if (longFired) { longFired = false; down = null; return; }
+    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8) { down = null; return; }
+    down = null;
+    const key = pickAt(e.clientX, e.clientY);
+    if (key) openSheet(key); else closeSheet();
+  });
+  canvas.addEventListener("contextmenu", function (e) {
+    e.preventDefault();
+    clearTimeout(longTimer);
+    toggleCarAt(pickAt(e.clientX, e.clientY));
+  });
 
   // =====================================================================
   //  ANIMATSIYA
   // =====================================================================
   function animate() {
     requestAnimationFrame(animate);
-    for (const s of Object.values(slots)) {
-      const target = s.status === "RESERVED" ? 0 : -Math.PI / 2;   // Band: 90° tik, aks holda yerda
+    for (const k of Object.keys(slots)) {
+      const s = slots[k];
+      const target = s.status === "RESERVED" ? 0 : -Math.PI / 2;
       s.pivot.rotation.x += (target - s.pivot.rotation.x) * 0.1;
       if (s.dropY > 0.01) s.dropY *= 0.84; else s.dropY = 0;
       s.car.position.y = s.dropY;
@@ -912,10 +1305,46 @@
   }
   animate();
 
-  // Boshlash
-  setMode("connecting");
-  poll();
-  pollTimer = setInterval(poll, 1000);
+  // =====================================================================
+  //  KUNDUZ / TUN
+  // =====================================================================
+  function setNight(on) {
+    NIGHT.on = on;
+    const btn = document.getElementById("nightBtn");
+    btn.textContent = on ? "☀️ Kunduz" : "🌙 Tun";
+    btn.setAttribute("aria-pressed", String(on));
+
+    if (NIGHT.skyMat) {
+      NIGHT.skyMat.vertexColors = !on;
+      NIGHT.skyMat.color.set(on ? 0x0b1220 : 0xffffff);
+      NIGHT.skyMat.needsUpdate = true;
+    }
+    if (scene.fog) {
+      scene.fog.color.set(on ? 0x0e1726 : 0xcfdae2);
+      scene.fog.near = on ? 220 : 300;
+      scene.fog.far = on ? 620 : 760;
+    }
+    scene.background = new THREE.Color(on ? 0x0b1220 : sceneColor);
+
+    sun.intensity = on ? 0.16 : 1.1;
+    sun.color.set(on ? 0x9ab4d8 : 0xffffff);
+    hemi.intensity = on ? 0.14 : 0.45;
+    hemi.color.set(on ? 0x7e93b5 : 0xffffff);
+    renderer.toneMappingExposure = on ? 0.95 : 1.05;
+
+    for (const l of NIGHT.lamps) l.intensity = on ? 1.5 : 0;
+    for (const l of NIGHT.indoor) l.intensity = on ? 1.1 : 0;
+    if (NIGHT.lampMat) NIGHT.lampMat.emissiveIntensity = on ? 2.4 : 0.4;
+    if (NIGHT.ceilMat) NIGHT.ceilMat.emissiveIntensity = on ? 1.6 : 0.15;
+    if (NIGHT.head) NIGHT.head.emissiveIntensity = on ? 2.2 : 0.9;
+    if (NIGHT.tail) NIGHT.tail.emissiveIntensity = on ? 1.6 : 0.6;
+    for (const k of Object.keys(slots)) slots[k].tintMat.opacity = on ? 0.5 : (slots[k].status === "NO_DATA" ? 0.5 : 0.34);
+  }
+  document.getElementById("nightBtn").addEventListener("click", function () { setNight(!NIGHT.on); });
+  setNight(false);
+
+  // Boshlash: real rejim
+  setMode("real");
 })();
 </script>
 </body>
